@@ -10,6 +10,30 @@
   - Update documentation
   - Reason: Used to monitor Xandeum assets specifically
 
+- [ ] **Network Anomaly Detection & DDoS Monitoring**
+  - Monitor incoming network traffic patterns for DDoS indicators
+  - Track: Connection rates, packet floods (SYN/UDP), unusual IPs
+  - Detect bandwidth saturation and port scanning
+  - Correlate network anomalies with validator delinquency/failover events
+  - Integration with iptables/nftables for real-time stats
+  - Alert on suspicious patterns BEFORE they cause voting issues
+  - Use Case: Detect what caused Madrid failover (Jan 28, 2026 04:33 UTC)
+
+- [ ] **Validator Vote & Delinquency Tracking**
+  - Monitor vote submission timing and success rates
+  - Track delinquency status and slot lag acceleration
+  - Gossip protocol health monitoring
+  - TPU/TVU port accessibility checks
+  - Pre-failover warning indicators
+  - Historical vote performance analysis
+
+- [ ] **HA Cluster Monitoring Integration**
+  - Track primary (Madrid) and failover (Amsterdam) validators
+  - Log failover events with timestamps and root cause data
+  - Automatic correlation: network spike → vote failure → failover
+  - Post-mortem analysis: Timeline reconstruction of incidents
+  - Multi-validator dashboard showing cluster health
+
 - [ ] **Native Solana/Xandeum Metrics Integration**
   - Add InfluxDB to xand-monitoring server
   - Configure validator to export native metrics (like SOLANA_METRICS_CONFIG)
