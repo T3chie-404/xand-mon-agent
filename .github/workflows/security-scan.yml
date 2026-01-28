@@ -1,0 +1,57 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  security-scan:
+    name: Security Sweep
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Run security sweep script
+        run: |
+          chmod +x scripts/security_sweep.sh
+          # Check all files, not just staged
+          git diff HEAD~1 HEAD > /tmp/recent_changes.txt || true
+          if grep -iE "api-key=|password|secret|BEGIN.*PRIVATE KEY" /tmp/recent_changes.txt; then
+            echo "❌ Potential sensitive data found in commit"
+            exit 1
+          fi
+      
+      - name: Check for hardcoded credentials
+        run: |
+          # Check for various credential patterns
+          if grep -r -i "d8f4ee9c" . --exclude-dir=.git; then
+            echo "❌ Found Helius API key"
+            exit 1
+          fi
+          if grep -r "148\.72\." . --exclude-dir=.git --exclude="*.md"; then
+            echo "❌ Found internal IP address"
+            exit 1
+          fi
+      
+      - name: Check for .env files
+        run: |
+          if find . -name ".env" -not -name "*.example" | grep -v ".git"; then
+            echo "❌ Found actual .env file (only .env.example allowed)"
+            exit 1
+          fi
+      
+      - name: Check for SSH keys
+        run: |
+          if find . -name "id_*" -o -name "*.pem" -o -name "*.key" | grep -v ".git"; then
+            echo "❌ Found SSH key or certificate file"
+            exit 1
+          fi
+      
+      - name: Success
+        run: echo "✅ All security checks passed"
