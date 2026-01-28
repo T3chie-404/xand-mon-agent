@@ -10,12 +10,22 @@
   - Update documentation
   - Reason: Used to monitor Xandeum assets specifically
 
+- [ ] **Native Solana/Xandeum Metrics Integration**
+  - Add InfluxDB to xand-monitoring server
+  - Configure validator to export native metrics (like SOLANA_METRICS_CONFIG)
+  - Support dual export: metrics.solana.com + xand-monitoring
+  - Use Telegraf for metrics relay/mirroring
+  - Captures: CPU, network, vote performance, block production, TPU stats
+  - Integrate with Grafana dashboards
+  - Combined view: Agent metrics (slot lag) + Native metrics (performance)
+
 ### Medium Priority
 
 - [ ] Add support for multiple RPC endpoints (failover)
 - [ ] Add configurable alert thresholds
 - [ ] Support for monitoring multiple local validators from one agent
 - [ ] Add systemd journal integration for better logging
+- [ ] Prometheus Federation for multi-site monitoring
 
 ### Low Priority
 
