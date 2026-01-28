@@ -41,6 +41,7 @@ def load_config():
         'public_rpc_url': os.getenv('PUBLIC_RPC_URL', 'https://api.mainnet-beta.solana.com'),
         'node_name': os.getenv('NODE_NAME', 'unknown-node'),
         'metrics_port': int(os.getenv('METRICS_PORT', '9100')),
+        'metrics_bind_address': os.getenv('METRICS_BIND_ADDRESS', '0.0.0.0'),
         'check_interval': int(os.getenv('CHECK_INTERVAL', '30')),
     }
     
@@ -51,7 +52,8 @@ def load_config():
     logger.info(f"Configuration loaded:")
     logger.info(f"  Node Name: {config['node_name']}")
     logger.info(f"  Local RPC Port: {config['local_rpc_port']}")
-    logger.info(f"  Metrics Port: {config['metrics_port']}")
+        logger.info(f"  Metrics Port: {config['metrics_port']}")
+        logger.info(f"  Metrics Bind: {config['metrics_bind_address']}")
     logger.info(f"  Check Interval: {config['check_interval']}s")
     
     return config
@@ -128,7 +130,8 @@ def main():
         # Start HTTP server (blocks)
         server = MetricsServer(
             port=config['metrics_port'],
-            registry=registry
+            registry=registry,
+            bind_address=config['metrics_bind_address']
         )
         
         logger.info("Agent ready!")

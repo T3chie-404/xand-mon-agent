@@ -40,11 +40,21 @@ class MetricsHandler(BaseHTTPRequestHandler):
         """Override to use our logger."""
         logger.debug(f"{self.address_string()} - {format % args}")
 
+    def handle(self):
+        """
+        Handle a single request.
+        Suppress ConnectionResetError to avoid noisy logs when scanners reset connections.
+        """
+        try:
+            super().handle()
+        except ConnectionResetError:
+            logger.debug("Connection reset by peer during request handling")
+
 
 class MetricsServer:
     """HTTP server for exposing Prometheus metrics."""
     
-    def __init__(self, port: int, registry: CollectorRegistry):
+    def __init__(self, port: int, registry: CollectorRegistry, bind_address: str = '0.0.0.0'):
         """
         Initialize metrics server.
         
@@ -53,19 +63,22 @@ class MetricsServer:
             registry: Prometheus registry
         """
         self.port = port
+        self.bind_address = bind_address
         self.registry = registry
         self.server = None
         
         # Set registry for handler
         MetricsHandler.registry = registry
         
-        logger.info(f"Initialized MetricsServer on port {port}")
+        logger.info(f"Initialized MetricsServer on {bind_address}:{port}")
     
     def start(self):
         """Start the HTTP server."""
         try:
-            self.server = HTTPServer(('0.0.0.0', self.port), MetricsHandler)
-            logger.info(f"Metrics server listening on http://0.0.0.0:{self.port}/metrics")
+            self.server = HTTPServer((self.bind_address, self.port), MetricsHandler)
+            logger.info(
+                f"Metrics server listening on http://{self.bind_address}:{self.port}/metrics"
+            )
             self.server.serve_forever()
         except KeyboardInterrupt:
             logger.info("Shutting down metrics server...")
