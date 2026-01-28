@@ -27,10 +27,40 @@ fi
 PYTHON_VERSION=$(python3 --version | awk '{print $2}')
 echo "Python version: $PYTHON_VERSION"
 
-# Check for Solana CLI
-if ! command -v solana &> /dev/null; then
-    echo "WARNING: Solana CLI not found in PATH"
-    echo "Make sure Solana CLI is installed and accessible"
+# Check for Solana CLI and detect its path
+SOLANA_PATH=""
+if command -v solana &> /dev/null; then
+    SOLANA_PATH=$(dirname $(which solana))
+    SOLANA_VERSION=$(solana --version | head -1)
+    echo "✅ Solana CLI found: $SOLANA_VERSION"
+    echo "   Path: $SOLANA_PATH"
+else
+    # Try to find solana in common user locations
+    INSTALL_USER=$(logname 2>/dev/null || echo $SUDO_USER)
+    if [ -n "$INSTALL_USER" ]; then
+        echo "Searching for Solana CLI in user paths..."
+        POSSIBLE_PATHS=(
+            "/home/$INSTALL_USER/.local/share/solana/install/active_release/bin"
+            "/home/$INSTALL_USER/data/compiled/active_release"
+            "/home/$INSTALL_USER/.cargo/bin"
+        )
+        
+        for path in "${POSSIBLE_PATHS[@]}"; do
+            if [ -f "$path/solana" ]; then
+                SOLANA_PATH="$path"
+                SOLANA_VERSION=$("$path/solana" --version 2>/dev/null | head -1)
+                echo "✅ Solana CLI found: $SOLANA_VERSION"
+                echo "   Path: $SOLANA_PATH"
+                break
+            fi
+        done
+    fi
+    
+    if [ -z "$SOLANA_PATH" ]; then
+        echo "⚠️  WARNING: Solana CLI not found in common locations"
+        echo "   The agent will attempt to use 'solana' from PATH at runtime"
+        echo "   If the agent fails, you may need to manually add Solana to PATH"
+    fi
 fi
 
 # Create virtual environment
@@ -62,6 +92,14 @@ chmod +x "$INSTALL_DIR/agent.py"
 echo ""
 echo "Installing systemd service..."
 
+# Build PATH variable including Solana if found
+if [ -n "$SOLANA_PATH" ]; then
+    SERVICE_PATH="$SOLANA_PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    echo "   Solana path will be added to service: $SOLANA_PATH"
+else
+    SERVICE_PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+fi
+
 cat > /etc/systemd/system/solana-monitoring-agent.service << EOF
 [Unit]
 Description=Solana Monitoring Agent
@@ -71,6 +109,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=$INSTALL_DIR
+Environment="PATH=$SERVICE_PATH"
 ExecStart=$INSTALL_DIR/venv/bin/python3 $INSTALL_DIR/agent.py
 Restart=always
 RestartSec=10
