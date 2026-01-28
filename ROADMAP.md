@@ -18,6 +18,8 @@
   - Integration with iptables/nftables for real-time stats
   - Alert on suspicious patterns BEFORE they cause voting issues
   - Use Case: Detect what caused Madrid failover (Jan 28, 2026 04:33 UTC)
+  - **PERFORMANCE**: Read-only kernel stats, NO packet inspection, <0.1% CPU
+  - All analysis on monitoring server, agent only collects/exposes metrics
 
 - [ ] **Validator Vote & Delinquency Tracking**
   - Monitor vote submission timing and success rates
