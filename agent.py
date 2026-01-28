@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from src.solana_client import SolanaClient
 from src.metrics_collector import MetricsCollector
 from src.http_server import MetricsServer
+from src.push_client import PushClient
 
 # Configure logging
 logging.basicConfig(
@@ -56,13 +57,20 @@ def load_config():
     return config
 
 
-def metrics_update_loop(collector, interval):
+def metrics_update_loop(collector, push_client, interval):
     """Background thread to update metrics periodically."""
     logger.info(f"Starting metrics update loop (interval={interval}s)")
     
     while True:
         try:
+            # Collect metrics
             collector.update_metrics()
+            
+            # Push metrics to monitoring server if enabled
+            if push_client.enabled:
+                metrics_data = collector.get_metrics_dict()
+                push_client.push_metrics(metrics_data)
+                
         except Exception as e:
             logger.error(f"Error in metrics update loop: {e}")
         
@@ -97,14 +105,22 @@ def main():
             registry=registry
         )
         
+        # Initialize push client (for agent-initiated monitoring)
+        push_client = PushClient()
+        
         # Do initial metrics collection
         logger.info("Performing initial metrics collection...")
         collector.update_metrics()
         
+        # Push initial metrics if enabled
+        if push_client.enabled:
+            metrics_data = collector.get_metrics_dict()
+            push_client.push_metrics(metrics_data)
+        
         # Start metrics update loop in background thread
         update_thread = threading.Thread(
             target=metrics_update_loop,
-            args=(collector, config['check_interval']),
+            args=(collector, push_client, config['check_interval']),
             daemon=True
         )
         update_thread.start()

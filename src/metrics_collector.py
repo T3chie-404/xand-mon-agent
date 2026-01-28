@@ -130,3 +130,39 @@ class MetricsCollector:
         except Exception as e:
             logger.error(f"Error getting slot lag: {e}")
             return None
+    
+    def get_metrics_dict(self) -> dict:
+        """
+        Get current metrics as a dictionary for pushing to monitoring server.
+        
+        Returns:
+            Dictionary of metric name -> value
+        """
+        try:
+            catchup_status = self.solana_client.get_catchup_status()
+            is_healthy = self.solana_client.is_healthy()
+            version = self.solana_client.get_node_version()
+            
+            metrics = {
+                'solana_node_health': 1 if is_healthy else 0,
+                'solana_metrics_last_update_timestamp': time.time()
+            }
+            
+            if catchup_status:
+                metrics.update({
+                    'solana_slot_current': catchup_status['local_slot'],
+                    'solana_slot_cluster': catchup_status['reference_slot'],
+                    'solana_slot_lag': catchup_status['slot_lag']
+                })
+            
+            if version:
+                metrics['solana_version'] = version
+            
+            return metrics
+            
+        except Exception as e:
+            logger.error(f"Error getting metrics dict: {e}")
+            return {
+                'solana_node_health': 0,
+                'solana_metrics_last_update_timestamp': time.time()
+            }
