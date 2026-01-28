@@ -100,9 +100,9 @@ else
     SERVICE_PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 fi
 
-cat > /etc/systemd/system/solana-monitoring-agent.service << EOF
+cat > /etc/systemd/system/xand-mon-agent.service << EOF
 [Unit]
-Description=Solana Monitoring Agent
+Description=Xandeum Monitoring Agent
 After=network.target
 
 [Service]
@@ -132,11 +132,11 @@ echo "   cp $INSTALL_DIR/env.example $INSTALL_DIR/.env"
 echo "   vim $INSTALL_DIR/.env"
 echo ""
 echo "2. Enable and start the service:"
-echo "   systemctl enable solana-monitoring-agent"
-echo "   systemctl start solana-monitoring-agent"
+echo "   systemctl enable xand-mon-agent"
+echo "   systemctl start xand-mon-agent"
 echo ""
 echo "3. Check status:"
-echo "   systemctl status solana-monitoring-agent"
+echo "   systemctl status xand-mon-agent"
 echo ""
 echo "4. View metrics:"
 echo "   curl http://localhost:9100/metrics"
