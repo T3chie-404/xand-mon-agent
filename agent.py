@@ -52,8 +52,8 @@ def load_config():
     logger.info(f"Configuration loaded:")
     logger.info(f"  Node Name: {config['node_name']}")
     logger.info(f"  Local RPC Port: {config['local_rpc_port']}")
-        logger.info(f"  Metrics Port: {config['metrics_port']}")
-        logger.info(f"  Metrics Bind: {config['metrics_bind_address']}")
+    logger.info(f"  Metrics Port: {config['metrics_port']}")
+    logger.info(f"  Metrics Bind: {config['metrics_bind_address']}")
     logger.info(f"  Check Interval: {config['check_interval']}s")
     
     return config
