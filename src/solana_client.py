@@ -51,35 +51,64 @@ class SolanaClient:
                 return None
             
             # Parse output to extract slot information
-            # Example output:
+            # Example outputs:
+            # "xandVGGr... has caught up (us:396425415 them:396425415)"
+            # "Our validator: slot=396425415\nCluster:       slot=396425420"
             # "Validator is caught up. Processed slot 245678906"
-            # or
-            # "Validator is  behind by 5 slots. Processed slot 245678901"
             
             output = result.stdout.strip()
             logger.debug(f"Catchup output: {output}")
             
-            # Extract local slot number
+            # Try to parse compact "caught up" format first
+            # Format: "has caught up (us:123456 them:123460)"
+            compact_match = re.search(r'\(us:(\d+)\s+them:(\d+)\)', output)
+            if compact_match:
+                local_slot = int(compact_match.group(1))
+                reference_slot = int(compact_match.group(2))
+                slot_lag = max(0, reference_slot - local_slot)
+                logger.debug(f"Parsed compact format: local={local_slot}, ref={reference_slot}, lag={slot_lag}")
+                return {
+                    'local_slot': local_slot,
+                    'reference_slot': reference_slot,
+                    'slot_lag': slot_lag
+                }
+            
+            # Try detailed format with separate lines
+            # Format: "Our validator: slot=123456" and "Cluster: slot=123460"
+            our_match = re.search(r'Our validator:\s+slot[=\s]+(\d+)', output, re.IGNORECASE)
+            cluster_match = re.search(r'Cluster:\s+slot[=\s]+(\d+)', output, re.IGNORECASE)
+            
+            if our_match and cluster_match:
+                local_slot = int(our_match.group(1))
+                reference_slot = int(cluster_match.group(1))
+                slot_lag = max(0, reference_slot - local_slot)
+                logger.debug(f"Parsed detailed format: local={local_slot}, ref={reference_slot}, lag={slot_lag}")
+                return {
+                    'local_slot': local_slot,
+                    'reference_slot': reference_slot,
+                    'slot_lag': slot_lag
+                }
+            
+            # Fallback: try old "Processed slot" format
             slot_match = re.search(r'Processed slot (\d+)', output)
-            if not slot_match:
-                logger.error(f"Could not parse slot from output: {output}")
-                return None
+            if slot_match:
+                local_slot = int(slot_match.group(1))
+                behind_match = re.search(r'behind by (\d+) slots', output)
+                if behind_match:
+                    slot_lag = int(behind_match.group(1))
+                    reference_slot = local_slot + slot_lag
+                else:
+                    slot_lag = 0
+                    reference_slot = local_slot
+                return {
+                    'local_slot': local_slot,
+                    'reference_slot': reference_slot,
+                    'slot_lag': slot_lag
+                }
             
-            local_slot = int(slot_match.group(1))
-            
-            # Check if behind or caught up
-            behind_match = re.search(r'behind by (\d+) slots', output)
-            if behind_match:
-                slot_lag = int(behind_match.group(1))
-                reference_slot = local_slot + slot_lag
-            elif 'caught up' in output.lower():
-                slot_lag = 0
-                reference_slot = local_slot
-            else:
-                # Unknown status, assume 0 lag
-                logger.warning(f"Unknown catchup status: {output}")
-                slot_lag = 0
-                reference_slot = local_slot
+            # Could not parse
+            logger.error(f"Could not parse slot from output: {output}")
+            return None
             
             return {
                 'local_slot': local_slot,
