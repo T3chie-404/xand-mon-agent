@@ -63,6 +63,13 @@ class MetricsCollector:
             ['node'],
             registry=registry
         )
+
+        self.rpc_error = Gauge(
+            'solana_rpc_error',
+            'RPC error while fetching catchup status (1=error, 0=ok)',
+            ['node'],
+            registry=registry
+        )
         
         self.node_info = Info(
             'solana_node',
@@ -85,6 +92,7 @@ class MetricsCollector:
             
             if catchup_status is None:
                 logger.warning("Failed to get catchup status")
+                self.rpc_error.labels(node=self.node_name).set(1)
                 self.node_health.labels(node=self.node_name).set(0)
                 return False
             
@@ -92,6 +100,7 @@ class MetricsCollector:
             self.slot_current.labels(node=self.node_name).set(catchup_status['local_slot'])
             self.slot_cluster.labels(node=self.node_name, rpc='catchup').set(catchup_status['reference_slot'])
             self.slot_lag.labels(node=self.node_name).set(catchup_status['slot_lag'])
+            self.rpc_error.labels(node=self.node_name).set(0)
             
             # Check health
             is_healthy = self.solana_client.is_healthy()
@@ -152,8 +161,11 @@ class MetricsCollector:
                 metrics.update({
                     'solana_slot_current': catchup_status['local_slot'],
                     'solana_slot_cluster': catchup_status['reference_slot'],
-                    'solana_slot_lag': catchup_status['slot_lag']
+                    'solana_slot_lag': catchup_status['slot_lag'],
+                    'solana_rpc_error': 0
                 })
+            else:
+                metrics['solana_rpc_error'] = 1
             
             if version:
                 metrics['solana_version'] = version

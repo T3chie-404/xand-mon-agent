@@ -22,6 +22,7 @@ class PushClient:
         self.api_url = os.getenv('MONITORING_API_URL', '')
         self.api_key = os.getenv('MONITORING_API_KEY', '')
         self.node_name = os.getenv('NODE_NAME', 'unknown')
+        self.node_identity = os.getenv('NODE_IDENTITY', '')
         self.retry_attempts = int(os.getenv('PUSH_RETRY_ATTEMPTS', '3'))
         
         if self.enabled:
@@ -53,7 +54,8 @@ class PushClient:
             'metrics': metrics_data,
             'metadata': {
                 'agent_version': '1.0.0',
-                'push_time': time.time()
+                'push_time': time.time(),
+                'identity': self.node_identity or None
             }
         }
         
